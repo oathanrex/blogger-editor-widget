@@ -1,0 +1,119 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Oathan Rex">
+    <title>Content Editor - Clean HTML Export</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Content Editor</h1>
+            <p class="app-subtitle">Write, format, and export clean HTML for your blog</p>
+        </header>
+
+        <main class="app-main">
+            <div class="editor-section">
+                <div class="toolbar" id="toolbar">
+                    <div class="toolbar-group">
+                        <button type="button" class="toolbar-btn" data-action="heading2" title="Heading 2">
+                            H2
+                        </button>
+                        <button type="button" class="toolbar-btn" data-action="heading3" title="Heading 3">
+                            H3
+                        </button>
+                        <button type="button" class="toolbar-btn" data-action="paragraph" title="Paragraph">
+                            P
+                        </button>
+                    </div>
+                    <div class="toolbar-divider"></div>
+                    <div class="toolbar-group">
+                        <button type="button" class="toolbar-btn" data-action="bold" title="Bold">
+                            <strong>B</strong>
+                        </button>
+                        <button type="button" class="toolbar-btn" data-action="italic" title="Italic">
+                            <em>I</em>
+                        </button>
+                        <button type="button" class="toolbar-btn" data-action="code" title="Inline Code">
+                            &lt;/&gt;
+                        </button>
+                    </div>
+                    <div class="toolbar-divider"></div>
+                    <div class="toolbar-group">
+                        <button type="button" class="toolbar-btn" data-action="bulletList" title="Bullet List">
+                            List
+                        </button>
+                        <button type="button" class="toolbar-btn" data-action="blockquote" title="Blockquote">
+                            Quote
+                        </button>
+                        <button type="button" class="toolbar-btn" data-action="link" title="Insert Link">
+                            Link
+                        </button>
+                    </div>
+                </div>
+                <div class="editor-wrapper">
+                    <div id="editor" class="editor-content"></div>
+                </div>
+            </div>
+
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h2 class="sidebar-title">Document Stats</h2>
+                    <div class="stats-container">
+                        <div class="stat-item">
+                            <span class="stat-label">Words</span>
+                            <span class="stat-value" id="word-count">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Characters</span>
+                            <span class="stat-value" id="char-count">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Reading Time</span>
+                            <span class="stat-value" id="reading-time">0 min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2 class="sidebar-title">Export</h2>
+                    <button type="button" class="export-btn" id="copy-html-btn">
+                        Copy Clean HTML
+                    </button>
+                    <p class="export-status" id="export-status"></p>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2 class="sidebar-title">HTML Preview</h2>
+                    <div class="html-preview-wrapper">
+                        <pre class="html-preview" id="html-preview"></pre>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <footer class="app-footer">
+            <p>Built by <a href="https://github.com/oathanrex" target="_blank" rel="noopener">Oathan Rex</a></p>
+        </footer>
+    </div>
+
+    <div class="modal-overlay" id="link-modal">
+        <div class="modal">
+            <h3 class="modal-title">Insert Link</h3>
+            <div class="modal-field">
+                <label for="link-url">URL</label>
+                <input type="url" id="link-url" placeholder="https://example.com">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn modal-btn-cancel" id="link-cancel">Cancel</button>
+                <button type="button" class="modal-btn modal-btn-confirm" id="link-confirm">Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./editor.js"></script>
+</body>
+</html>
