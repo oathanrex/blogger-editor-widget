@@ -1,229 +1,273 @@
 /* utils.js */
 
 /**
- * Utility Functions Module
- * Common helper functions used across the application
+ * Utility Functions
+ * @author Oathan Rex
  */
 
+// Pre-compiled regex patterns
+const REGEX = {
+    whitespace: /\s+/g,
+    htmlEntities: /[&<>"']/g,
+    closingTags: /(<\/(?:p|h2|h3|ul|li|blockquote)>)/g,
+    multiNewlines: /\n{3,}/g,
+    cjk: /[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g,
+    zeroWidth: /[\u200B-\u200D\uFEFF]/g
+};
+
+const HTML_ENTITY_MAP = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+};
+
 /**
- * Create a debounced version of a function
- * @param {Function} func - Function to debounce
- * @param {number} wait - Wait time in milliseconds
- * @returns {Function} Debounced function
+ * Debounce function with flush and cancel
  */
 export function debounce(func, wait) {
     let timeoutId = null;
-    
-    return function debounced(...args) {
-        const context = this;
-        
+    let lastArgs = null;
+    let lastThis = null;
+
+    function debounced(...args) {
+        lastArgs = args;
+        lastThis = this;
+
         if (timeoutId !== null) {
             clearTimeout(timeoutId);
         }
-        
-        timeoutId = setTimeout(() => {
-            func.apply(context, args);
-            timeoutId = null;
-        }, wait);
-    };
-}
 
-/**
- * Create a throttled version of a function
- * @param {Function} func - Function to throttle
- * @param {number} limit - Time limit in milliseconds
- * @returns {Function} Throttled function
- */
-export function throttle(func, limit) {
-    let inThrottle = false;
-    
-    return function throttled(...args) {
-        const context = this;
-        
-        if (!inThrottle) {
-            func.apply(context, args);
-            inThrottle = true;
-            
-            setTimeout(() => {
-                inThrottle = false;
-            }, limit);
+        timeoutId = setTimeout(() => {
+            timeoutId = null;
+            func.apply(lastThis, lastArgs);
+            lastArgs = null;
+            lastThis = null;
+        }, wait);
+    }
+
+    debounced.flush = function() {
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+            if (lastArgs !== null) {
+                func.apply(lastThis, lastArgs);
+                lastArgs = null;
+                lastThis = null;
+            }
         }
     };
+
+    debounced.cancel = function() {
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+            lastArgs = null;
+            lastThis = null;
+        }
+    };
+
+    return debounced;
 }
 
 /**
  * Copy text to clipboard
- * @param {string} text - Text to copy
- * @returns {Promise<boolean>} Success status
  */
 export async function copyToClipboard(text) {
-    // Try modern Clipboard API first
+    if (typeof text !== 'string' || !text) {
+        return false;
+    }
+
     if (navigator.clipboard && window.isSecureContext) {
         try {
             await navigator.clipboard.writeText(text);
             return true;
-        } catch (error) {
-            console.warn('Clipboard API failed, trying fallback:', error);
+        } catch (err) {
+            console.warn('Clipboard API failed:', err);
         }
     }
-    
-    // Fallback for older browsers or non-secure contexts
-    return copyToClipboardFallback(text);
+
+    return copyFallback(text);
 }
 
-/**
- * Fallback clipboard copy using execCommand
- * @param {string} text - Text to copy
- * @returns {boolean} Success status
- */
-function copyToClipboardFallback(text) {
-    const textArea = document.createElement('textarea');
+function copyFallback(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.cssText = 'position:fixed;top:0;left:0;width:2em;height:2em;opacity:0;z-index:-1';
+    textarea.setAttribute('readonly', '');
+    textarea.setAttribute('aria-hidden', 'true');
     
-    // Style to hide the textarea
-    textArea.style.position = 'fixed';
-    textArea.style.top = '0';
-    textArea.style.left = '0';
-    textArea.style.width = '2em';
-    textArea.style.height = '2em';
-    textArea.style.padding = '0';
-    textArea.style.border = 'none';
-    textArea.style.outline = 'none';
-    textArea.style.boxShadow = 'none';
-    textArea.style.background = 'transparent';
-    textArea.style.opacity = '0';
-    
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    let success = false;
-    
+    document.body.appendChild(textarea);
+
     try {
-        success = document.execCommand('copy');
-    } catch (error) {
-        console.error('Fallback copy failed:', error);
-    }
-    
-    document.body.removeChild(textArea);
-    return success;
-}
-
-/**
- * Show status message with auto-clear
- * @param {HTMLElement} element - Status element
- * @param {string} message - Message to display
- * @param {string} type - Message type ('success' or 'error')
- * @param {number} duration - Duration in milliseconds
- */
-export function showStatus(element, message, type = 'success', duration = 3000) {
-    if (!element) return;
-    
-    // Clear existing classes
-    element.classList.remove('success', 'error');
-    
-    // Set message and type
-    element.textContent = message;
-    element.classList.add(type);
-    
-    // Clear after duration
-    setTimeout(() => {
-        element.textContent = '';
-        element.classList.remove(type);
-    }, duration);
-}
-
-/**
- * Generate a unique ID
- * @param {string} prefix - Optional prefix
- * @returns {string} Unique ID
- */
-export function generateId(prefix = 'id') {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
-    return `${prefix}-${timestamp}-${random}`;
-}
-
-/**
- * Check if the current environment supports a feature
- * @param {string} feature - Feature to check
- * @returns {boolean} Support status
- */
-export function supportsFeature(feature) {
-    switch (feature) {
-        case 'clipboard':
-            return !!(navigator.clipboard && window.isSecureContext);
-        case 'modules':
-            return 'noModule' in HTMLScriptElement.prototype;
-        case 'customElements':
-            return 'customElements' in window;
-        default:
-            return false;
+        textarea.select();
+        textarea.setSelectionRange(0, text.length);
+        return document.execCommand('copy');
+    } catch (err) {
+        console.error('Copy fallback failed:', err);
+        return false;
+    } finally {
+        document.body.removeChild(textarea);
     }
 }
 
 /**
- * Sanitize a string for safe HTML insertion
- * @param {string} str - String to sanitize
- * @returns {string} Sanitized string
+ * Escape HTML entities
  */
-export function sanitizeString(str) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    
-    return str.replace(/[&<>"']/g, char => map[char]);
+export function escapeHTML(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(REGEX.htmlEntities, char => HTML_ENTITY_MAP[char]);
 }
 
 /**
- * Parse URL and validate it
- * @param {string} url - URL to parse
- * @returns {Object|null} Parsed URL object or null if invalid
+ * Escape HTML attribute value
  */
-export function parseURL(url) {
+export function escapeAttribute(str) {
+    if (typeof str !== 'string') return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+/**
+ * Validate URL - prevents XSS via javascript: protocol
+ */
+export function validateURL(url) {
+    if (!url || typeof url !== 'string') {
+        return { valid: false, url: '', error: 'URL is required' };
+    }
+
+    const trimmed = url.trim();
+
+    // Block dangerous protocols
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+        return { valid: false, url: '', error: 'Invalid URL protocol' };
+    }
+
     try {
-        const parsed = new URL(url);
+        const parsed = new URL(trimmed);
         
-        // Only allow http and https protocols
-        if (!['http:', 'https:'].includes(parsed.protocol)) {
-            return null;
+        if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) {
+            return { valid: false, url: '', error: 'Only HTTP, HTTPS, and mailto links are allowed' };
         }
-        
-        return parsed;
-    } catch (error) {
-        return null;
+
+        return { valid: true, url: parsed.href };
+    } catch {
+        // Try adding https://
+        if (!trimmed.includes('://') && !trimmed.startsWith('mailto:')) {
+            try {
+                const withProtocol = 'https://' + trimmed;
+                const parsed = new URL(withProtocol);
+                return { valid: true, url: parsed.href };
+            } catch {
+                return { valid: false, url: '', error: 'Invalid URL format' };
+            }
+        }
+        return { valid: false, url: '', error: 'Invalid URL format' };
     }
 }
 
 /**
- * Format number with locale-specific separators
- * @param {number} num - Number to format
- * @returns {string} Formatted number
+ * Normalize text (remove zero-width characters)
+ */
+export function normalizeText(text) {
+    if (typeof text !== 'string') return '';
+    return text.replace(REGEX.zeroWidth, '');
+}
+
+/**
+ * Check for CJK characters
+ */
+export function containsCJK(text) {
+    if (typeof text !== 'string') return false;
+    return REGEX.cjk.test(text);
+}
+
+/**
+ * Count CJK characters
+ */
+export function countCJK(text) {
+    if (typeof text !== 'string') return 0;
+    const matches = text.match(REGEX.cjk);
+    return matches ? matches.length : 0;
+}
+
+/**
+ * Format number with locale separators
  */
 export function formatNumber(num) {
+    if (typeof num !== 'number' || isNaN(num)) return '0';
     return num.toLocaleString();
 }
 
 /**
- * Check if value is empty (null, undefined, or empty string)
- * @param {*} value - Value to check
- * @returns {boolean} Is empty
+ * Create timeout promise
  */
-export function isEmpty(value) {
-    return value === null || value === undefined || value === '';
+export function timeout(ms, message = 'Timeout') {
+    return new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(message)), ms);
+    });
 }
 
 /**
- * Clamp a number between min and max values
- * @param {number} num - Number to clamp
- * @param {number} min - Minimum value
- * @param {number} max - Maximum value
- * @returns {number} Clamped number
+ * Retry async operation with backoff
  */
-export function clamp(num, min, max) {
-    return Math.min(Math.max(num, min), max);
+export async function retry(operation, options = {}) {
+    const { attempts = 3, delay = 1000, backoff = 1.5, onRetry = null } = options;
+
+    let lastError;
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error;
+
+            if (attempt < attempts) {
+                const wait = delay * Math.pow(backoff, attempt - 1);
+                if (onRetry) {
+                    onRetry(attempt, wait, error);
+                }
+                await new Promise(resolve => setTimeout(resolve, wait));
+            }
+        }
+    }
+
+    throw lastError;
+}
+
+/**
+ * Show status message
+ */
+export function showStatus(element, message, type = 'success', duration = 3000) {
+    if (!element) return;
+
+    element.classList.remove('success', 'error');
+    element.textContent = message;
+    element.classList.add(type);
+
+    if (duration > 0) {
+        setTimeout(() => {
+            element.textContent = '';
+            element.classList.remove(type);
+        }, duration);
+    }
+}
+
+/**
+ * Announce to screen readers
+ */
+export function announce(message) {
+    const announcer = document.getElementById('announcer');
+    if (announcer && message) {
+        announcer.textContent = '';
+        setTimeout(() => {
+            announcer.textContent = message;
+        }, 50);
+    }
 }
