@@ -1,46 +1,32 @@
 /* export.js */
 
 /**
- * Export Module
- * Handles conversion of Tiptap JSON to clean HTML
+ * HTML Export Module
+ * @author Oathan Rex
  */
 
-// Allowed HTML tags for export
-const ALLOWED_TAGS = ['p', 'h2', 'h3', 'ul', 'li', 'strong', 'em', 'a', 'code', 'blockquote'];
+import { escapeHTML, escapeAttribute, validateURL } from './utils.js';
 
 /**
- * Convert Tiptap JSON to clean HTML
- * @param {Object} json - Tiptap JSON content
- * @returns {string} Clean HTML string
+ * Generate clean HTML from Tiptap JSON
  */
 export function generateCleanHTML(json) {
-    if (!json || !json.content) {
+    if (!json || !json.content || !Array.isArray(json.content)) {
         return '';
     }
 
-    return processNodes(json.content);
-}
-
-/**
- * Process an array of nodes
- * @param {Array} nodes - Array of Tiptap nodes
- * @returns {string} HTML string
- */
-function processNodes(nodes) {
-    if (!nodes || !Array.isArray(nodes)) {
-        return '';
+    const parts = [];
+    for (const node of json.content) {
+        const html = processNode(node);
+        if (html) {
+            parts.push(html);
+        }
     }
-
-    return nodes.map(node => processNode(node)).join('\n');
+    return parts.join('\n');
 }
 
-/**
- * Process a single node
- * @param {Object} node - Tiptap node
- * @returns {string} HTML string
- */
 function processNode(node) {
-    if (!node) return '';
+    if (!node || !node.type) return '';
 
     switch (node.type) {
         case 'paragraph':
@@ -56,213 +42,170 @@ function processNode(node) {
         case 'text':
             return processText(node);
         default:
-            // For unknown node types, try to process content
-            if (node.content) {
-                return processNodes(node.content);
+            if (node.content && Array.isArray(node.content)) {
+                return node.content.map(processNode).filter(Boolean).join('');
             }
             return '';
     }
 }
 
-/**
- * Process paragraph node
- */
 function processParagraph(node) {
-    const content = processInlineContent(node.content);
-    
-    // Skip empty paragraphs
-    if (!content.trim()) {
-        return '';
-    }
-    
-    return `<p>${content}</p>`;
+    const content = processInline(node.content);
+    if (!content || !content.trim()) return '';
+    return '<p>' + content + '</p>';
 }
 
-/**
- * Process heading node
- */
 function processHeading(node) {
-    const level = node.attrs?.level || 2;
+    const level = (node.attrs && typeof node.attrs.level === 'number') ? node.attrs.level : 2;
     const tag = level === 3 ? 'h3' : 'h2';
-    const content = processInlineContent(node.content);
-    
-    if (!content.trim()) {
-        return '';
-    }
-    
-    return `<${tag}>${content}</${tag}>`;
+    const content = processInline(node.content);
+    if (!content || !content.trim()) return '';
+    return '<' + tag + '>' + content + '</' + tag + '>';
 }
 
-/**
- * Process bullet list node
- */
 function processBulletList(node) {
-    if (!node.content || node.content.length === 0) {
+    if (!node.content || !Array.isArray(node.content) || node.content.length === 0) {
         return '';
     }
-    
-    const items = node.content.map(item => processNode(item)).filter(Boolean);
-    
-    if (items.length === 0) {
-        return '';
-    }
-    
-    return `<ul>\n${items.join('\n')}\n</ul>`;
+    const items = node.content.map(processNode).filter(Boolean);
+    if (items.length === 0) return '';
+    return '<ul>\n' + items.join('\n') + '\n</ul>';
 }
 
-/**
- * Process list item node
- */
 function processListItem(node) {
-    if (!node.content) {
-        return '';
-    }
-    
-    // List items can contain paragraphs or other content
-    const content = node.content.map(child => {
+    if (!node.content || !Array.isArray(node.content)) return '';
+
+    const parts = [];
+    for (const child of node.content) {
         if (child.type === 'paragraph') {
-            return processInlineContent(child.content);
+            const text = processInline(child.content);
+            if (text) parts.push(text);
+        } else if (child.type === 'bulletList') {
+            const nested = processBulletList(child);
+            if (nested) parts.push(nested);
+        } else {
+            const processed = processNode(child);
+            if (processed) parts.push(processed);
         }
-        return processNode(child);
-    }).join('');
-    
-    if (!content.trim()) {
-        return '';
     }
-    
-    return `<li>${content}</li>`;
+
+    if (parts.length === 0) return '';
+    return '<li>' + parts.join('') + '</li>';
 }
 
-/**
- * Process blockquote node
- */
 function processBlockquote(node) {
-    if (!node.content) {
-        return '';
-    }
-    
-    const content = node.content.map(child => {
+    if (!node.content || !Array.isArray(node.content)) return '';
+
+    const parts = [];
+    for (const child of node.content) {
         if (child.type === 'paragraph') {
-            return processInlineContent(child.content);
+            const text = processInline(child.content);
+            if (text) parts.push(text);
+        } else {
+            const processed = processNode(child);
+            if (processed) parts.push(processed);
         }
-        return processNode(child);
-    }).filter(Boolean).join('\n');
-    
-    if (!content.trim()) {
-        return '';
     }
-    
-    return `<blockquote>${content}</blockquote>`;
+
+    if (parts.length === 0) return '';
+    return '<blockquote>' + parts.join('<br>') + '</blockquote>';
 }
 
-/**
- * Process inline content (text nodes with marks)
- */
-function processInlineContent(content) {
-    if (!content || !Array.isArray(content)) {
-        return '';
-    }
-    
-    return content.map(node => processText(node)).join('');
+function processInline(content) {
+    if (!content || !Array.isArray(content)) return '';
+    return content.map(processText).join('');
 }
 
-/**
- * Process text node with marks
- */
 function processText(node) {
-    if (!node || node.type !== 'text') {
+    if (!node || node.type !== 'text' || typeof node.text !== 'string') {
         return '';
     }
-    
-    let text = escapeHTML(node.text || '');
-    
-    if (!node.marks || node.marks.length === 0) {
+
+    let text = escapeHTML(node.text);
+
+    if (!node.marks || !Array.isArray(node.marks) || node.marks.length === 0) {
         return text;
     }
-    
-    // Apply marks in order
-    node.marks.forEach(mark => {
+
+    // Sort marks for consistent output
+    const sorted = [...node.marks].sort((a, b) => {
+        const order = ['link', 'bold', 'italic', 'code'];
+        return order.indexOf(a.type) - order.indexOf(b.type);
+    });
+
+    const open = [];
+    const close = [];
+
+    for (const mark of sorted) {
         switch (mark.type) {
             case 'bold':
-                text = `<strong>${text}</strong>`;
+                open.push('<strong>');
+                close.unshift('</strong>');
                 break;
             case 'italic':
-                text = `<em>${text}</em>`;
+                open.push('<em>');
+                close.unshift('</em>');
                 break;
             case 'code':
-                text = `<code>${text}</code>`;
+                open.push('<code>');
+                close.unshift('</code>');
                 break;
-            case 'link':
-                const href = escapeAttribute(mark.attrs?.href || '#');
-                text = `<a href="${href}">${text}</a>`;
+            case 'link': {
+                const href = (mark.attrs && mark.attrs.href) ? mark.attrs.href : '';
+                const validation = validateURL(href);
+                if (validation.valid) {
+                    open.push('<a href="' + escapeAttribute(validation.url) + '">');
+                    close.unshift('</a>');
+                }
                 break;
+            }
         }
-    });
-    
-    return text;
+    }
+
+    return open.join('') + text + close.join('');
 }
 
 /**
- * Escape HTML special characters
- */
-function escapeHTML(str) {
-    const escapeMap = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;'
-    };
-    
-    return str.replace(/[&<>]/g, char => escapeMap[char]);
-}
-
-/**
- * Escape attribute value
- */
-function escapeAttribute(str) {
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
-
-/**
- * Format HTML for display in preview
+ * Format HTML for preview display
  */
 export function formatHTMLForDisplay(html) {
-    if (!html.trim()) {
-        return 'No content to preview';
+    if (!html || typeof html !== 'string' || !html.trim()) {
+        return '';
     }
-    
-    // Add line breaks and indentation for readability
-    let formatted = html;
-    
-    // Add newlines after closing tags
-    formatted = formatted.replace(/(<\/(?:p|h2|h3|ul|li|blockquote)>)/g, '$1\n');
-    
-    // Remove extra blank lines
-    formatted = formatted.replace(/\n{3,}/g, '\n\n');
-    
+
+    let formatted = html
+        .replace(/(<\/(?:p|h2|h3|ul|li|blockquote)>)/g, '$1\n')
+        .replace(/(<ul>)/g, '$1\n')
+        .replace(/(<li>)/g, '  $1')
+        .replace(/\n{3,}/g, '\n\n');
+
     return formatted.trim();
 }
 
 /**
- * Validate that HTML only contains allowed tags
+ * HTML Preview Controller
  */
-export function validateHTML(html) {
-    // Create a temporary element to parse HTML
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    
-    // Check all elements
-    const elements = temp.querySelectorAll('*');
-    
-    for (const el of elements) {
-        if (!ALLOWED_TAGS.includes(el.tagName.toLowerCase())) {
-            return false;
-        }
+export class HTMLPreviewController {
+    constructor() {
+        this.element = null;
+        this.lastHTML = null;
     }
-    
-    return true;
+
+    initialize(elementId) {
+        this.element = document.getElementById(elementId);
+        return this.element !== null;
+    }
+
+    update(html) {
+        if (!this.element) return;
+        if (this.lastHTML === html) return;
+
+        this.lastHTML = html;
+        this.element.textContent = formatHTMLForDisplay(html) || '';
+    }
+
+    destroy() {
+        this.element = null;
+        this.lastHTML = null;
+    }
 }
