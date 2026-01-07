@@ -5,22 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="Oathan Rex">
-    <meta name="description" content="Clean HTML editor for bloggers - Write, format, and export Blogger-compatible HTML">
-    <meta http-equiv="Content-Security-Policy" content="
-        default-src 'self';
-        script-src 'self' https://cdn.jsdelivr.net;
-        style-src 'self' 'unsafe-inline';
-        connect-src 'self' https://cdn.jsdelivr.net;
-        img-src 'self' data:;
-        font-src 'self';
-    ">
+    <meta name="description" content="Clean HTML editor for bloggers">
     <title>Content Editor - Clean HTML Export</title>
     <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
     <a href="#editor" class="skip-link">Skip to editor</a>
     
-    <div class="app-container" role="application" aria-label="Content Editor">
+    <div class="app-container">
         <header class="app-header">
             <h1>Content Editor</h1>
             <p class="app-subtitle">Write, format, and export clean HTML for your blog</p>
@@ -36,59 +28,47 @@
                             data-action="heading2" 
                             aria-label="Heading level 2"
                             aria-pressed="false"
-                        >
-                            H2
-                        </button>
+                        >H2</button>
                         <button 
                             type="button" 
                             class="toolbar-btn" 
                             data-action="heading3" 
                             aria-label="Heading level 3"
                             aria-pressed="false"
-                        >
-                            H3
-                        </button>
+                        >H3</button>
                         <button 
                             type="button" 
                             class="toolbar-btn" 
                             data-action="paragraph" 
                             aria-label="Paragraph"
                             aria-pressed="false"
-                        >
-                            P
-                        </button>
+                        >P</button>
                     </div>
-                    <div class="toolbar-divider" role="separator" aria-orientation="vertical"></div>
+                    <div class="toolbar-divider" role="separator"></div>
                     <div class="toolbar-group" role="group" aria-label="Inline formatting">
                         <button 
                             type="button" 
                             class="toolbar-btn" 
                             data-action="bold" 
-                            aria-label="Bold (Ctrl+B)"
+                            aria-label="Bold"
                             aria-pressed="false"
-                        >
-                            <strong aria-hidden="true">B</strong>
-                        </button>
+                        ><strong>B</strong></button>
                         <button 
                             type="button" 
                             class="toolbar-btn" 
                             data-action="italic" 
-                            aria-label="Italic (Ctrl+I)"
+                            aria-label="Italic"
                             aria-pressed="false"
-                        >
-                            <em aria-hidden="true">I</em>
-                        </button>
+                        ><em>I</em></button>
                         <button 
                             type="button" 
                             class="toolbar-btn" 
                             data-action="code" 
                             aria-label="Inline code"
                             aria-pressed="false"
-                        >
-                            <span aria-hidden="true">&lt;/&gt;</span>
-                        </button>
+                        >&lt;/&gt;</button>
                     </div>
-                    <div class="toolbar-divider" role="separator" aria-orientation="vertical"></div>
+                    <div class="toolbar-divider" role="separator"></div>
                     <div class="toolbar-group" role="group" aria-label="Lists and blocks">
                         <button 
                             type="button" 
@@ -96,27 +76,21 @@
                             data-action="bulletList" 
                             aria-label="Bullet list"
                             aria-pressed="false"
-                        >
-                            List
-                        </button>
+                        >List</button>
                         <button 
                             type="button" 
                             class="toolbar-btn" 
                             data-action="blockquote" 
                             aria-label="Block quote"
                             aria-pressed="false"
-                        >
-                            Quote
-                        </button>
+                        >Quote</button>
                         <button 
                             type="button" 
                             class="toolbar-btn" 
                             data-action="link" 
-                            aria-label="Insert link (Ctrl+K)"
+                            aria-label="Insert link"
                             aria-pressed="false"
-                        >
-                            Link
-                        </button>
+                        >Link</button>
                     </div>
                 </nav>
                 <div class="editor-wrapper">
@@ -128,55 +102,39 @@
                         aria-label="Document content"
                     ></div>
                 </div>
-                <div class="editor-status" role="status" aria-live="polite" id="editor-status"></div>
             </div>
 
             <aside class="sidebar" aria-label="Document information">
                 <section class="sidebar-section">
-                    <h2 class="sidebar-title" id="stats-heading">Document Stats</h2>
-                    <div class="stats-container" role="region" aria-labelledby="stats-heading">
+                    <h2 class="sidebar-title">Document Stats</h2>
+                    <div class="stats-container">
                         <div class="stat-item">
-                            <span class="stat-label" id="words-label">Words</span>
-                            <span class="stat-value" id="word-count" aria-labelledby="words-label">0</span>
+                            <span class="stat-label">Words</span>
+                            <span class="stat-value" id="word-count">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label" id="chars-label">Characters</span>
-                            <span class="stat-value" id="char-count" aria-labelledby="chars-label">0</span>
+                            <span class="stat-label">Characters</span>
+                            <span class="stat-value" id="char-count">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label" id="reading-label">Reading Time</span>
-                            <span class="stat-value" id="reading-time" aria-labelledby="reading-label">0 min</span>
+                            <span class="stat-label">Reading Time</span>
+                            <span class="stat-value" id="reading-time">0 min</span>
                         </div>
                     </div>
                 </section>
 
                 <section class="sidebar-section">
-                    <h2 class="sidebar-title" id="export-heading">Export</h2>
-                    <button 
-                        type="button" 
-                        class="export-btn" 
-                        id="copy-html-btn"
-                        aria-describedby="export-heading"
-                    >
+                    <h2 class="sidebar-title">Export</h2>
+                    <button type="button" class="export-btn" id="copy-html-btn">
                         Copy Clean HTML
                     </button>
-                    <div 
-                        class="export-status" 
-                        id="export-status" 
-                        role="status" 
-                        aria-live="polite"
-                    ></div>
+                    <div class="export-status" id="export-status" role="status" aria-live="polite"></div>
                 </section>
 
                 <section class="sidebar-section">
-                    <h2 class="sidebar-title" id="preview-heading">HTML Preview</h2>
+                    <h2 class="sidebar-title">HTML Preview</h2>
                     <div class="html-preview-wrapper">
-                        <pre 
-                            class="html-preview" 
-                            id="html-preview"
-                            aria-labelledby="preview-heading"
-                            tabindex="0"
-                        ></pre>
+                        <pre class="html-preview" id="html-preview" tabindex="0"></pre>
                     </div>
                 </section>
             </aside>
@@ -215,7 +173,7 @@
         </div>
     </div>
 
-    <div id="announcer" class="sr-only" role="status" aria-live="assertive"></div>
+    <div id="announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <script type="module" src="./app.js"></script>
 </body>
